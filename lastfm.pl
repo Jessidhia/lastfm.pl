@@ -311,7 +311,7 @@ sub message_public {
 						$username = $cmd[2];
 						$ircnick = $cmd[1];
 					} else {
-						send_msg($server, $target, "You can only associate your own nick. Use .setuser your_last_fm_username")
+						send_msg($server, $target, "You can only associate your own nick. Use .setuser your_last_fm_username");
 						return;
 					}
 				}
