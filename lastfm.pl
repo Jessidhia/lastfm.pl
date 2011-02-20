@@ -12,32 +12,11 @@ binmode STDOUT, ":utf8";
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
 
-our %nick_user_map = (
-	'Emess' => 'Emessis',
-	'MisterHatt' => 'Emessis',
-	'apo' => 'Apo2k4',
-	'apo_' => 'Apo2k4',
-	'iluna' => 'ilunari',
-	'checkers' => 'Chequers',
-	'hrm' => 'pink_mist',
-	'Bakayarou' => 'pink_mist',
-	'd4rkie' => 'D4RK-PH0ENiX',
-	'zeromind' => 'zerimond',
-	'Kaze' => 'Asraful',
-	'JEEB' => 'jeebjp',
-	'Moogy' => 'Moogy0',
-	'Piroko' => 'Pirokoro',
-	'rfw' => 'rofflwaffls',
-	'windstar' => 'windfy',
-	'JAM' => 'buttwarrior',
-	'Kulag' => 'Arktosis',
-	'reiserFS' => 'Veggfx',
-	'micro' => 'microlah',
-	);
-
+our $nick_user_map = {};
 our $api_cache = {};
 if( open my $cachefile, '<', 'lastfm_cache.json' ) {
 	$api_cache = decode_json(scalar <$cachefile>);
+	$nick_user_map = get_cache('mappings', 'nick_user') // $nick_user_map;
 	close $cachefile;
 }
 
@@ -116,6 +95,7 @@ sub set_cache {
 
 sub write_cache {
 	clean_cache;
+	set_cache('mappings', 'nick_user', $nick_user_map, -1);
 	open my $cachefile, '>', 'lastfm_cache.json';
 	syswrite $cachefile, encode_json($api_cache);
 	close $cachefile;
@@ -263,7 +243,7 @@ sub send_msg {
 
 sub nick_map($) {
 	my $nick = shift;
-	return $nick_user_map{$nick} // $nick
+	return $$nick_user_map{$nick} // $nick
 }
 
 sub now_playing {
@@ -317,6 +297,35 @@ sub message_public {
 				unshift @users, $nick unless $cmd[2];
 				map { $_ = nick_map $_ } @users[0,1];
 				send_msg($server, $target, usercompare(@users));
+			}
+		}
+		when ('.setuser') {
+			unless (@cmd > 1) { send_msg($server, $target, ".setuser needs a last.fm username") }
+			else {
+				my $username = $cmd[1];
+				my $ircnick = $nick;
+				if ($nick eq $server->{nick} && $cmd[2]) {
+					$username = $cmd[2];
+					$ircnick = $cmd[1];
+				}
+				my $data = get_last_fm_data( 'user.getrecenttracks', limit => 1, user => $username );
+				if ($data && $$data{recenttracks}{track}) {
+					send_msg($server, $target, "'$ircnick' is now associated with http://last.fm/user/$username");
+					$$nick_user_map{$ircnick} = $username;
+					write_cache;
+				} else {
+					send_msg($server, $target, "Could not find the '$username' last.fm account");
+				}
+			}
+		}
+		when ('.deluser') {
+			my $ircnick = $nick eq $server->{nick} ? ($cmd[1] // $nick) : $nick;
+			if ($$nick_user_map{$ircnick}) {
+				delete $$nick_user_map{$ircnick};
+				send_msg($server, $target, "Removed the mapping for '$ircnick'");
+				write_cache;
+			} else {
+				send_msg($server, $target, "Mapping for '$ircnick' doesn't exist");
 			}
 		}
 		default {
