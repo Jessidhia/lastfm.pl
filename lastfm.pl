@@ -13,13 +13,25 @@ binmode STDOUT, ":utf8";
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
 
 our $nick_user_map;
+our $user_nick_map = {}; # derived from $nick_user_map
 our $api_cache = {};
 if( open my $cachefile, '<', 'lastfm_cache.json' ) {
 	$api_cache = decode_json(scalar <$cachefile>);
 	$nick_user_map = get_cache('mappings', 'nick_user');
+	build_nick_map();
 	close $cachefile;
 }
 $nick_user_map //= {};
+
+sub build_nick_map {
+	return unless $nick_user_map;
+	for my $nick (keys %$nick_user_map) {
+		next if $nick eq '#expire';
+		my $user = $$nick_user_map{$nick};
+		my $map = $$user_nick_map{$user} //= {};
+		$$map{$nick} = 1;
+	}
+}
 
 sub _delete_if_expired($$) {
 	my ($hash, $key) = @_;
@@ -322,6 +334,7 @@ sub message_public {
 				if ($data && $$data{recenttracks}{track}) {
 					send_msg($server, $target, "'$ircnick' is now associated with http://last.fm/user/$username");
 					$$nick_user_map{$ircnick} = $username;
+					$$user_nick_map{$username}{$ircnick} = 1;
 					write_cache;
 				} else {
 					send_msg($server, $target, "Could not find the '$username' last.fm account");
@@ -330,12 +343,27 @@ sub message_public {
 		}
 		when ('.deluser') {
 			my $ircnick = $nick eq $server->{nick} ? ($cmd[1] // $nick) : $nick;
-			if ($$nick_user_map{$ircnick}) {
+			my $username = $$nick_user_map{$ircnick};
+			if ($username) {
+				delete $$user_nick_map{$username}{$ircnick};
 				delete $$nick_user_map{$ircnick};
 				send_msg($server, $target, "Removed the mapping for '$ircnick'");
 				write_cache;
 			} else {
 				send_msg($server, $target, "Mapping for '$ircnick' doesn't exist");
+			}
+		}
+		when ('.whois') {
+			unless (@cmd > 1) { send_msg($server, $target, ".whois needs a last.fm username"); }
+			elsif (my $map = $$user_nick_map{$cmd[1]}) {
+				my @nicks = sort keys %$map;
+				my $end = pop @nicks;
+				my $list = join ', ', @nicks;
+				$list = $list ? "$list and $end" : $end;
+				send_msg($server, $target, "$cmd[1] is also known as $list");
+			}
+			else {
+				send_msg($server, $target, "$cmd[1] is known as himself");
 			}
 		}
 		when ('.lastfm') {
