@@ -28,9 +28,9 @@ sub _delete_if_expired($$) {
 	return undef unless defined $item;
 
 	# backwards compatibility
-	delete $$hash{$key} && return undef unless $$item{expire};
+	delete $$hash{$key} && return undef unless $$item{'#expire'};
 
-	if ($item && $$item{expire} > 0 && $$item{expire} < time) {
+	if ($item && $$item{'#expire'} > 0 && $$item{'#expire'} < time) {
 		delete $$hash{$key};
 		return undef;
 	}
@@ -88,9 +88,9 @@ sub set_cache {
 	}
 
 	if($expire > 0) {
-		$$cache{$key}{expire} = (time) + $expire;
+		$$cache{$key}{'#expire'} = (time) + $expire;
 	} else {
-		$$cache{$key}{expire} = -1;
+		$$cache{$key}{'#expire'} = -1;
 	}
 
 	return $$cache{$key};
