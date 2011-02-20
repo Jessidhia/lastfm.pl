@@ -373,8 +373,8 @@ sub message_public {
 				my @nicks = sort grep { $_ ne $user and $_ ne $nick } keys %$map;
 				my $end = pop @nicks;
 				my $list = join ', ', @nicks;
-				my $main = $list ? " ($nick)" : "";
-				$list = $end ? "$list and $end" : $list ? "" : $nick;
+				my $main = $list || $end ? " ($nick)" : "";
+				$list = $end && $list ? "$list and $end" : $end ? $end : $list ? "" : $nick;
 				send_msg($server, $target, "$user$main is also known as $list");
 			}
 			else {
