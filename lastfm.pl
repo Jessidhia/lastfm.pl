@@ -251,11 +251,14 @@ sub now_playing {
 	my ($nick, $ignerr, @cmd) = @_;
 	my $user = $cmd[1] ? $cmd[1] : $nick;
 	$user = nick_map $user;
-	return undef if get_cache('accountless', $user);
+
+	my $cached = get_cache('accountless', $user);
+	return $ignerr ? _text $cached : undef if $cached;
+
 	my $np = get_user_np($user);
 	Irssi::timeout_add_once(500, \&write_cache, undef);
 	if ($$np{error}) {
-		set_cache('accountless', $user, 1);
+		set_cache('accountless', $user, $$np{error});
 		return $ignerr ? $$np{error} : undef;
 	}
 	elsif ($$np{warn}) { return $ignerr ? $$np{warn} : '' }
@@ -268,11 +271,7 @@ sub whats_playing {
 	foreach($chan->nicks) {
 		next if (get_cache('accountless', nick_map $$_{nick}));
 		my $np = now_playing($$_{nick}, 0);
-		unless (defined $np) {
-			set_cache('accountless', nick_map $$_{nick}, 1);
-			next;
-		}
-		next unless $np ne '';
+		next unless defined $np && $np ne '';
 		send_msg($server, $target, $np);
 	}
 	Irssi::timeout_add_once(100, \&write_cache, undef);
