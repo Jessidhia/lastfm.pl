@@ -355,13 +355,27 @@ sub message_public {
 			}
 		}
 		when ('.whois') {
-			unless (@cmd > 1) { send_msg($server, $target, ".whois needs a last.fm username"); }
-			elsif (my $map = $$user_nick_map{$cmd[1]}) {
+			unless (@cmd > 1) {
+				send_msg($server, $target, ".whois needs a last.fm username");
+				return;
+			}
+			my $user = $cmd[1];
+			my $nick = $$nick_user_map{$user};
+			if (my $map = $$user_nick_map{$user}) {
 				my @nicks = sort keys %$map;
 				my $end = pop @nicks;
 				my $list = join ', ', @nicks;
 				$list = $list ? "$list and $end" : $end;
-				send_msg($server, $target, "$cmd[1] is also known as $list");
+				send_msg($server, $target, "$user is also known as $list");
+			}
+			elsif ($nick) {
+				my $map = $$user_nick_map{$nick};
+				my @nicks = sort grep { $_ ne $user and $_ ne $nick } keys %$map;
+				my $end = pop @nicks;
+				my $list = join ', ', @nicks;
+				my $main = $list ? " ($nick)" : "";
+				$list = $end ? "$list and $end" : $list ? "" : $nick;
+				send_msg($server, $target, "$user$main is also known as $list");
 			}
 			else {
 				send_msg($server, $target, "$cmd[1] is known as himself");
@@ -376,8 +390,7 @@ sub message_public {
 '                     compares u1 with u2 if both are given.',
 '.setuser user      - associates the "user" last.fm username with your nickname.',
 '                     the two argument form is only available to the owner.',
-'.whois username    - given a last.fm username (ignores .setuser), return all',
-'                     nicknames that are associated to it.',
+'.whois username    - given a last.fm username, return all nicknames that are associated to it.',
 '.deluser           - removes your last.fm association.',
 '                     the form with argument is only available to the owner.',
 'Owner-only commands:',
