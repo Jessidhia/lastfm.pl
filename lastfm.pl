@@ -255,7 +255,6 @@ sub now_playing {
 	return $ignerr ? _text $cached : undef if $cached;
 
 	my $np = get_user_np($user);
-	Irssi::timeout_add_once(500, \&write_cache, undef);
 	if ($$np{error}) {
 		set_cache('accountless', $user, $$np{error});
 		return $ignerr ? $$np{error} : undef;
@@ -273,7 +272,6 @@ sub whats_playing {
 		next unless defined $np && $np ne '';
 		send_msg($server, $target, $np);
 	}
-	Irssi::timeout_add_once(100, \&write_cache, undef);
 }
 
 sub message_public {
@@ -286,9 +284,13 @@ sub message_public {
 	given ($cmd[0]) {
 		when ('.np') { # now playing
 			send_msg($server, $target, now_playing($nick, 1, @cmd));
+			write_cache;
 		}
 		when ('.wp') { # what's playing
-			whats_playing($server, $target) if $nick eq $server->{nick};
+			if ($nick eq $server->{nick}) {
+				whats_playing($server, $target);
+				write_cache;
+			}
 		}
 		when ('.compare') { # tasteometer comparison
 			unless (@cmd > 1) { send_msg($server, $target, ".compare needs someone to compare to") }
