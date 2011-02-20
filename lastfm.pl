@@ -306,9 +306,14 @@ sub message_public {
 			else {
 				my $username = $cmd[1];
 				my $ircnick = $nick;
-				if ($nick eq $server->{nick} && $cmd[2]) {
-					$username = $cmd[2];
-					$ircnick = $cmd[1];
+				if ($cmd[2]) {
+					if ($nick eq $server->{nick}) {
+						$username = $cmd[2];
+						$ircnick = $cmd[1];
+					} else {
+						send_msg($server, $target, "You can only associate your own nick. Use .setuser your_last_fm_username")
+						return;
+					}
 				}
 				my $data = get_last_fm_data( 'user.getrecenttracks', limit => 1, user => $username );
 				if ($data && $$data{recenttracks}{track}) {
