@@ -376,6 +376,8 @@ sub message_public {
 '                     compares u1 with u2 if both are given.',
 '.setuser user      - associates the "user" last.fm username with your nickname.',
 '                     the two argument form is only available to the owner.',
+'.whois username    - given a last.fm username (ignores .setuser), return all',
+'                     nicknames that are associated to it.',
 '.deluser           - removes your last.fm association.',
 '                     the form with argument is only available to the owner.',
 'Owner-only commands:',
