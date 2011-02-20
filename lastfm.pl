@@ -281,8 +281,9 @@ sub now_playing {
 sub whats_playing {
 	my ($server, $target) = @_;
 	my $chan = $server->channel_find($target);
-	foreach($chan->nicks) {
-		next if get_cache('accountless', nick_map $$_{nick});
+	my @nicks = grep { undef if get_cache('accountless', nick_map $$_{nick) } } $chan->nicks
+	my %nicks = map { ($_, 1) } grep { defined } @nicks;
+	foreach(keys %nicks) {
 		my $np = now_playing($$_{nick}, 0);
 		next unless defined $np && $np ne '';
 		send_msg($server, $target, $np);
