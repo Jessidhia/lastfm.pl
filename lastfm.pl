@@ -330,6 +330,27 @@ sub message_public {
 				send_msg($server, $target, "Mapping for '$ircnick' doesn't exist");
 			}
 		}
+		when ('.lastfm') {
+			my @help = (
+'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
+'Commands:',
+'.np [username]     - shows your currently playing song, or of another user if specified',
+'.compare u1 [u2]   - compares yourself with u1 (another user) if u2 isn\'t specified',
+'                     compares u1 with u2 if both are given.',
+'.setuser user      - associates the "user" last.fm username with your nickname.',
+'                     the two argument form is only available to the owner.',
+'.deluser           - removes your last.fm association.',
+'                     the form with argument is only available to the owner.',
+'Owner-only commands:',
+'.wp                - shows everyone\'s currently playing song',
+'.setuser nick user - associates the nick with the specified last.fm user',
+'.deluser nick      - removes the nick\'s association with his last.fm account',
+);
+			for (@help) {
+				send_msg($server, $nick, $_);
+			}
+			send_msg($server, $target, "$nick: help PMed");
+		}
 		default {
 			return;
 		}
