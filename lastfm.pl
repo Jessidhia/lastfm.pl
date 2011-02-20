@@ -20,6 +20,7 @@ our %nick_user_map = (
 	'iluna' => 'ilunari',
 	'checkers' => 'Chequers',
 	'hrm' => 'pink_mist',
+	'Bakayarou' => 'pink_mist',
 	'd4rkie' => 'D4RK-PH0ENiX',
 	'zeromind' => 'zerimond',
 	'Kaze' => 'Asraful',
