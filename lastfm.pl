@@ -12,13 +12,14 @@ binmode STDOUT, ":utf8";
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
 
-our $nick_user_map = {};
+our $nick_user_map;
 our $api_cache = {};
 if( open my $cachefile, '<', 'lastfm_cache.json' ) {
 	$api_cache = decode_json(scalar <$cachefile>);
-	$nick_user_map = get_cache('mappings', 'nick_user') // $nick_user_map;
+	$nick_user_map = get_cache('mappings', 'nick_user');
 	close $cachefile;
 }
+$nick_user_map //= {};
 
 sub _delete_if_expired($$) {
 	my ($hash, $key) = @_;
