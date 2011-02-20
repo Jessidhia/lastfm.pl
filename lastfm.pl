@@ -21,9 +21,10 @@ if( open my $cachefile, '<', 'lastfm_cache.json' ) {
 }
 
 sub _delete_if_expired($$) {
-	my ($hash, $key) = shift;
-	return unless $hash && $key;
+	my ($hash, $key) = @_;
+	return undef unless $hash && $key;
 	my $item = $$hash{$key};
+	return undef unless defined $item;
 
 	# backwards compatibility
 	delete $$hash{$key} && return undef unless $$item{expire};
@@ -45,6 +46,7 @@ sub clean_cache {
 
 sub _text($) {
 	my $tag = shift;
+	return undef unless defined $tag;
 	return $$tag{'#text'} if ref $tag;
 	return $tag;
 }
