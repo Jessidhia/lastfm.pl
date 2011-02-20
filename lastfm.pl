@@ -36,16 +36,30 @@ our %nick_user_map = (
 	);
 
 our $api_cache = {};
-our $cache_time = 3600*24*7 * 10;
 if( open my $cachefile, '<', 'lastfm_cache.json' ) {
 	$api_cache = decode_json(scalar <$cachefile>);
 	close $cachefile;
 }
 
+sub _delete_if_expired($$) {
+	my ($hash, $key) = shift;
+	return unless $hash && $key;
+	my $item = $$hash{$key};
+
+	# backwards compatibility
+	delete $$hash{$key} && return undef unless $$item{expire};
+
+	if ($item && $$item{expire} > 0 && $$item{expire} < time) {
+		delete $$hash{$key};
+		return undef;
+	}
+	return $item;
+}
+
 sub clean_cache {
 	for my $cache (values %$api_cache) {
 		for (keys %$cache) {
-			delete $$cache{$_} if $$cache{$_}{cache_time} < ((time) - $cache_time);
+			_delete_if_expired $cache, $_;
 		}
 	}
 }
@@ -63,9 +77,7 @@ sub get_cache {
 	my $cache = $$api_cache{$subcache} //= {};
 	
 	return undef unless defined $key;
-	delete $$cache{$key} if $$cache{$key} && $$cache{$key}{cache_time} < ((time) - $cache_time);
-	return undef unless $$cache{$key};
-	return $$cache{$key};
+	return _delete_if_expired $cache, $key;
 }
 
 sub upd_cache {
@@ -76,9 +88,10 @@ sub upd_cache {
 
 sub set_cache {
 	croak "Insufficient arguments" unless @_ >= 3;
-	my ($subcache, $key, $value) = @_;
+	my ($subcache, $key, $value, $expire) = @_;
 	die "Invalid cache $subcache" unless defined $subcache;
 	my $cache = $$api_cache{$subcache} //= {};
+	$expire //= 3600*24*7 * 10; # 1 week by default
 
 	return undef unless defined $key;
 	if( ref $value eq 'CODE' ) { # JSON can't store code; evaluate
@@ -91,7 +104,12 @@ sub set_cache {
 	} else {
 		$$cache{$key} = { '#text' => $value };
 	}
-	$$cache{$key}{cache_time} = time;
+
+	if($expire > 0) {
+		$$cache{$key}{expire} = (time) + $expire;
+	} else {
+		$$cache{$key}{expire} = -1;
+	}
 
 	return $$cache{$key};
 }
