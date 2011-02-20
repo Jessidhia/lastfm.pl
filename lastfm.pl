@@ -318,6 +318,7 @@ sub message_public {
 		}
 		when ('.setuser') {
 			unless (@cmd > 1) { send_msg($server, $target, ".setuser needs a last.fm username") }
+			elsif($cmd[1] eq $nick) { send_msg($server, $target, "$nick: You already are yourself") }
 			else {
 				my $username = $cmd[1];
 				my $ircnick = $nick;
