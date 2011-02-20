@@ -4,6 +4,7 @@ use warnings;
 use feature ':5.10';
 
 use LWP::UserAgent;
+use List::MoreUtils qw{uniq};
 use Encode;
 use Carp;
 use JSON;
@@ -281,13 +282,10 @@ sub now_playing {
 sub whats_playing {
 	my ($server, $target) = @_;
 	my $chan = $server->channel_find($target);
-	my %nicks = map { ($_, 1) } grep { !get_cache('accountless', $_) }
-	            map { nick_map $$_{nick} } $chan->nicks;
-	foreach(keys %nicks) {
-		my $np = now_playing($_, 0);
-		next unless defined $np && $np ne '';
-		send_msg($server, $target, $np);
-	}
+	send_msg($server, $target, $_) for grep { defined && $_ ne '' }
+	                                   map { now_playing($_, 0) } uniq
+	                                   grep { !get_cache('accountless', $_) }
+	                                   map { nick_map $$_{nick} } $chan->nicks;
 }
 
 sub message_public {
