@@ -378,7 +378,7 @@ sub message_public {
 				send_msg($server, $target, "$user$main is also known as $list");
 			}
 			else {
-				send_msg($server, $target, "$cmd[1] is known as himself");
+				send_msg($server, $target, "$user is only known as $user");
 			}
 		}
 		when ('.lastfm') {
