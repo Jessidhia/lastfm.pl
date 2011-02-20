@@ -383,6 +383,7 @@ sub message_public {
 		when ('.lastfm') {
 			my @help = (
 'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
+'Unlike IRC, all names are CASE SENSITIVE.',
 'Commands:',
 '.np [username]     - shows your currently playing song, or of another user if specified',
 '.compare u1 [u2]   - compares yourself with u1 (another user) if u2 isn\'t specified',
