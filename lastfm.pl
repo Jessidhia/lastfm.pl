@@ -347,11 +347,11 @@ sub message_public {
 			if ($username) {
 				delete $$user_nick_map{$username}{$ircnick};
 				delete $$nick_user_map{$ircnick};
-				set_cache('accountless', $username, 0) if get_cache('accountless', $username);
+				set_cache('accountless', $username, undef) if get_cache('accountless', $username);
 				send_msg($server, $target, "Removed the mapping for '$ircnick'");
 				write_cache;
 			} elsif (get_cache('accountless', $ircnick)) {
-				set_cache('accountless', $ircnick, 0);
+				set_cache('accountless', $ircnick, undef);
 				send_msg($server, $target, "Removed $ircnick from invalid account cache");
 				write_cache;
 			} else {
