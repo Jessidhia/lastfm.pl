@@ -65,6 +65,14 @@ sub _text($) {
 	return $tag;
 }
 
+sub del_cache {
+	croak "Insufficient arguments" unless @_ >= 2;
+	my ($subcache, $key) = @_;
+	die "Invalid cache $subcache" unless defined $subcache;
+	$$api_cache{$subcache} //= {};
+	delete $$api_cache{$subcache}{$key};
+}
+
 sub get_cache {
 	croak "Insufficient arguments" unless @_ >= 2;
 	my ($subcache, $key) = @_;
@@ -347,11 +355,11 @@ sub message_public {
 			if ($username) {
 				delete $$user_nick_map{$username}{$ircnick};
 				delete $$nick_user_map{$ircnick};
-				set_cache('accountless', $username, undef) if get_cache('accountless', $username);
+				del_cache('accountless', $username) if get_cache('accountless', $username);
 				send_msg($server, $target, "Removed the mapping for '$ircnick'");
 				write_cache;
 			} elsif (get_cache('accountless', $ircnick)) {
-				set_cache('accountless', $ircnick, undef);
+				del_cache('accountless', $ircnick);
 				send_msg($server, $target, "Removed $ircnick from invalid account cache");
 				write_cache;
 			} else {
