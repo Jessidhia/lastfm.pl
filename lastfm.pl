@@ -1,8 +1,4 @@
-use v5.10;
-use strict;
-use warnings;
-use feature ':5.10';
-
+use common::sense;
 use LWP::UserAgent;
 use List::MoreUtils qw{uniq};
 use Encode;
@@ -432,6 +428,7 @@ Irssi::signal_add_last("message public", \&message_public);
 Irssi::signal_add_last("message own_public", \&message_own_public);
 
 package LastFM::Cache;
+use common::sense;
 use DBI;
 
 sub new {
