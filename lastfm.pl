@@ -14,85 +14,6 @@ binmode STDOUT, ":utf8";
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
 
-our $dbh = DBI->connect("dbi:SQLite:dbname=lastfm_cache.db", '', '', { sqlite_unicode => 1 });
-$dbh->do("PRAGMA foreign_keys=ON");
-$dbh->do("PRAGMA locking_mode=EXCLUSIVE;");
-$dbh->do("PRAGMA journal_mode=WAL;");
-
-$dbh->do(<<'');
-CREATE TABLE IF NOT EXISTS usernames (uid INTEGER PRIMARY KEY, username TEXT UNIQUE, valid INTEGER);
-
-$dbh->do(<<'');
-CREATE TABLE IF NOT EXISTS nicknames (nickname TEXT UNIQUE, uid INTEGER NOT NULL,
-	FOREIGN KEY (uid) REFERENCES usernames(uid));
-
-$dbh->do(<<'');
-CREATE TABLE IF NOT EXISTS artists (artid INTEGER PRIMARY KEY, artist TEXT UNIQUE, timestamp INTEGER);
-
-$dbh->do(<<'');
-CREATE TABLE IF NOT EXISTS artist_tag_cache (artid INTEGER NOT NULL, tag TEXT NOT NULL, votes INTEGER,
-	FOREIGN KEY (artid) REFERENCES artists(artid) ON DELETE CASCADE);
-
-my %prep = (
-	clean => {
-		artists => $dbh->prepare(<<''), # ON DELETE CASCADE will do the Right Thing
-DELETE FROM artists WHERE timestamp BETWEEN 1 AND ?;
-
-		},
-	get => {
-		nicks_for_user  => $dbh->prepare(<<''),
-SELECT nickname FROM nicknames NATURAL JOIN usernames WHERE lower(username) = lower(?);
-
-		user_for_nick   => $dbh->prepare(<<''),
-SELECT username FROM usernames NATURAL JOIN nicknames WHERE lower(nickname) = lower(?);
-
-		valid_users     => $dbh->prepare(<<''),
-SELECT username FROM usernames WHERE valid = 1;
-
-		is_user_valid   => $dbh->prepare(<<''),
-SELECT valid FROM usernames WHERE lower(username) = lower(?);
-
-		tags_for_artist => $dbh->prepare(<<''),
-SELECT tag FROM artist_tag_cache NATURAL JOIN artists WHERE
-	lower(artist) = lower(?) ORDER BY votes;
-
-		},
-	add => {
-		user       => $dbh->prepare(<<''),
-INSERT INTO usernames (username, valid) VALUES (?, ?);
-
-		nickname   => $dbh->prepare(<<''),
-INSERT INTO nicknames (nickname, uid) VALUES
-	(?, (SELECT uid FROM usernames WHERE lower(username) = lower(?)));
-
-		artist     => $dbh->prepare(<<''),
-INSERT INTO artists (artist, timestamp) VALUES (?, strftime('%s', 'now'));
-
-		artist_tag => $dbh->prepare(<<''),
-INSERT INTO artist_tag_cache (artid, tag, votes) VALUES
-	((SELECT artid FROM artists WHERE lower(artist) = lower(?)), ?, ?);
-
-		},
-	update => {
-		user_valid => $dbh->prepare(<<''),
-UPDATE usernames SET valid = ? WHERE lower(username) = lower(?);
-
-	},
-	delete => {
-		nickname         => $dbh->prepare(<<''),
-DELETE FROM nicknames WHERE lower(nickname) = lower(?);
-
-		orphan_usernames => $dbh->prepare(<<''),
-DELETE FROM usernames WHERE uid NOT IN (SELECT uid FROM nicknames);
-
-		},
-	);
-
-sub clean_cache {
-	my $now = time() - 3600*24*7*10;
-	$prep{clean}{$_}->execute($now) for(keys %{$prep{clean}});
-}
-
 our $nick_user_map;
 our $user_nick_map = {}; # derived from $nick_user_map
 our $api_cache = {};
@@ -509,3 +430,93 @@ sub message_own_public {
 
 Irssi::signal_add_last("message public", \&message_public);
 Irssi::signal_add_last("message own_public", \&message_own_public);
+
+package LastFM::Cache;
+use DBI;
+
+sub new {
+	my $self = bless {}, shift;
+	my $dbname = shift // "lastfm_cache.db";
+
+	my $dbh = $$self{dbh} =
+		DBI->connect("dbi:SQLite:dbname=$dbname", '', '', { sqlite_unicode => 1 });
+	$dbh->do("PRAGMA foreign_keys=ON");
+	$dbh->do("PRAGMA locking_mode=EXCLUSIVE;");
+	$dbh->do("PRAGMA journal_mode=WAL;");
+
+	$dbh->do(<<'');
+CREATE TABLE IF NOT EXISTS usernames (uid INTEGER PRIMARY KEY, username TEXT UNIQUE, valid INTEGER);
+
+	$dbh->do(<<'');
+CREATE TABLE IF NOT EXISTS nicknames (nickname TEXT UNIQUE, uid INTEGER NOT NULL,
+	FOREIGN KEY (uid) REFERENCES usernames(uid));
+
+	$dbh->do(<<'');
+CREATE TABLE IF NOT EXISTS artists (artid INTEGER PRIMARY KEY, artist TEXT UNIQUE, timestamp INTEGER);
+
+	$dbh->do(<<'');
+CREATE TABLE IF NOT EXISTS artist_tag_cache (artid INTEGER NOT NULL, tag TEXT NOT NULL, votes INTEGER,
+	FOREIGN KEY (artid) REFERENCES artists(artid) ON DELETE CASCADE);
+
+	$$self{prep} = {
+		clean => {
+			artists => $dbh->prepare(<<''), # ON DELETE CASCADE will do the Right Thing
+DELETE FROM artists WHERE timestamp BETWEEN 1 AND ?;
+
+			},
+		get => {
+			nicks_for_user  => $dbh->prepare(<<''),
+SELECT nickname FROM nicknames NATURAL JOIN usernames WHERE lower(username) = lower(?);
+
+			user_for_nick   => $dbh->prepare(<<''),
+SELECT username FROM usernames NATURAL JOIN nicknames WHERE lower(nickname) = lower(?);
+
+			valid_users     => $dbh->prepare(<<''),
+SELECT username FROM usernames WHERE valid = 1;
+
+			is_user_valid   => $dbh->prepare(<<''),
+SELECT valid FROM usernames WHERE lower(username) = lower(?);
+
+			tags_for_artist => $dbh->prepare(<<''),
+SELECT tag FROM artist_tag_cache NATURAL JOIN artists WHERE
+	lower(artist) = lower(?) ORDER BY votes;
+
+			},
+		add => {
+			user       => $dbh->prepare(<<''),
+INSERT INTO usernames (username, valid) VALUES (?, ?);
+
+			nickname   => $dbh->prepare(<<''),
+INSERT INTO nicknames (nickname, uid) VALUES
+	(?, (SELECT uid FROM usernames WHERE lower(username) = lower(?)));
+
+			artist     => $dbh->prepare(<<''),
+INSERT INTO artists (artist, timestamp) VALUES (?, strftime('%s', 'now'));
+
+			artist_tag => $dbh->prepare(<<''),
+INSERT INTO artist_tag_cache (artid, tag, votes) VALUES
+	((SELECT artid FROM artists WHERE lower(artist) = lower(?)), ?, ?);
+
+			},
+		update => {
+			user_valid => $dbh->prepare(<<''),
+UPDATE usernames SET valid = ? WHERE lower(username) = lower(?);
+
+		},
+		delete => {
+			nickname         => $dbh->prepare(<<''),
+DELETE FROM nicknames WHERE lower(nickname) = lower(?);
+
+			orphan_usernames => $dbh->prepare(<<''),
+DELETE FROM usernames WHERE uid NOT IN (SELECT uid FROM nicknames);
+
+			},
+		};
+
+}
+
+sub clean_cache {
+	my $self = shift;
+	my $now = time() - 3600*24*7*10;
+	$$self{prep}{clean}{$_}->execute($now) for(keys %{$$self{prep}{clean}});
+}
