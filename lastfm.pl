@@ -468,6 +468,16 @@ SELECT nickname FROM nicknames NATURAL JOIN usernames WHERE lower(username) = lo
 			user_for_nick   => $dbh->prepare(<<''),
 SELECT username FROM usernames NATURAL JOIN nicknames WHERE lower(nickname) = lower(?);
 
+			uid_for_name    => $dbh->prepare(<<''),
+SELECT uid FROM usernames NATURAL JOIN nicknames WHERE
+	lower(?1) = lower(username) OR lower(?1) = lower(nickname);
+
+			user_for_uid    => $dbh->prepare(<<''),
+SELECT username FROM usernames WHERE uid = ?;
+
+			nicks_for_uid   => $dbh->prepare(<<''),
+SELECT nickname FROM nicknames WHERE uid = ?;
+
 			valid_users     => $dbh->prepare(<<''),
 SELECT username FROM usernames WHERE valid = 1;
 
@@ -516,4 +526,15 @@ sub clean_cache {
 	my $self = shift;
 	my $now = time() - 3600*24*7*10;
 	$$self{prep}{clean}{$_}->execute($now) for(keys %{$$self{prep}{clean}});
+}
+
+sub get_user_aliases {
+	my($self, $query) = @_;
+	my $get = $$self{prep}{get};
+	my $uid = [$$get{uid_for_name}->execute($query)->fetchall_arrayref]->[0][0];
+	return undef unless defined $uid;
+	my @aliases;
+	push @aliases, [$$get{user_for_uid}->execute($uid)->fetchall_arrayref]->[0][0];
+	push @aliases, $$_[0] while ($_ = $$get{nicks_for_uid}->execute($uid)->fetch_arrayref);
+	return @aliases;
 }
