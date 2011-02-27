@@ -213,7 +213,7 @@ sub get_user_np {
 
 				my $tags = artist_gettoptags(\%res);
 				$res{tags} = [map { $$_{name} } grep { $$_{count} } (ref $$tags{toptags}{tag} eq 'ARRAY' ? @{$$tags{toptags}{tag}} : $$tags{toptags}{tag})] if $tags;
-				$res{tags} = [grep { defined } @{$res{tags}}[0..2]];
+				$res{tags} = [grep { defined } @{$res{tags}}[0..3]];
 
 				$res{len}   = ($$info{track}{duration} // 0) / 1000; # miliseconds
 				$res{loved} = $$info{track}{userloved};
