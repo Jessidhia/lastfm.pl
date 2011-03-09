@@ -522,6 +522,16 @@ DELETE FROM usernames WHERE uid NOT IN (SELECT uid FROM nicknames);
 
 }
 
+sub fetchall($@) {
+	my ($stmt, @args) = @_;
+	return $stmt->execute(@args) && $stmt->fetchall_arrayref;
+}
+
+sub fetch($) {
+	my ($stmt) = @_;
+	return $stmt->fetch_arrayref;
+}
+
 sub clean_cache {
 	my $self = shift;
 	my $now = time() - 3600*24*7*10;
@@ -531,10 +541,13 @@ sub clean_cache {
 sub get_user_aliases {
 	my($self, $query) = @_;
 	my $get = $$self{prep}{get};
-	my $uid = [$$get{uid_for_name}->execute($query)->fetchall_arrayref]->[0][0];
+	my $uid = [fetchall $$get{uid_for_name}, $query]->[0][0];
 	return undef unless defined $uid;
+
 	my @aliases;
-	push @aliases, [$$get{user_for_uid}->execute($uid)->fetchall_arrayref]->[0][0];
-	push @aliases, $$_[0] while ($_ = $$get{nicks_for_uid}->execute($uid)->fetch_arrayref);
+	push @aliases, [fetchall $$get{user_for_uid}, $uid]->[0][0];
+
+	$$get{nicks_for_uid}->execute($uid);
+	push @aliases, $$_[0] while ($_ = fetch $$get{nicks_for_uid});
 	return @aliases;
 }
