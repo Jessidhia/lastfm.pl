@@ -193,7 +193,7 @@ sub get_user_np {
 
 	my %res;
 	my $data = get_last_fm_data( 'user.getrecenttracks', limit => 1, user => $user );
-	my $prevtime = -1;
+	my ($prevtime, $prevlen);
 	if( $data && (my $tracks = $$data{recenttracks}{track}) ) {
 		my @tracks = (ref $tracks eq 'ARRAY' ? @$tracks : $tracks);
 		for( @tracks ) {
@@ -210,13 +210,15 @@ sub get_user_np {
 
 				my $tags = artist_gettoptags(\%res);
 				$res{tags} = [map { $$_{name} } grep { $$_{count} } (ref $$tags{toptags}{tag} eq 'ARRAY' ? @{$$tags{toptags}{tag}} : $$tags{toptags}{tag})] if $tags;
-				$res{tags} = [grep { defined } @{$res{tags}}[0..2]];
+				$res{tags} = [grep { defined && $_ ne 'touhou' } @{$res{tags}}[0..4]];
+				pop @{$res{tags}} until @{$res{tags}} <= 4;
 
 				$res{len}   = ($$info{track}{duration} // 0) / 1000; # miliseconds
 				$res{loved} = $$info{track}{userloved};
 				$res{count} = $$info{track}{userplaycount} if $$info{track}{userplaycount};
-			} else {
-				$prevtime = $$_{date}{uts} + $$info{track}{duration} / 1000 if $$info{track}{duration} && $$_{date} && $$_{date}{uts};
+			} elsif ($$info{track}{duration} && $$_{date} && $$_{date}{uts}) {
+				$prevlen  = $$info{track}{duration};
+				$prevtime = $$_{date}{uts} - $prevlen;
 			}
 		}
 		unless ($res{name}) {
@@ -225,7 +227,11 @@ sub get_user_np {
 		}
 
 		my $now = time;
-		$res{pos} = $now - $prevtime if $res{len} && $prevtime && (($now - $prevtime) <= $res{len});
+		if ($res{len} && $prevtime && ($now - $prevtime) <= $res{len}) {
+			$res{pos} = $now - $prevtime;
+			$res{pos} += $prevlen if $res{pos} < 0;
+		}
+
 	} else {
 		%res = (error => "User '$user' not found or error accessing his/her recent tracks.");
 	}
