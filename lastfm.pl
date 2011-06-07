@@ -213,7 +213,7 @@ sub get_user_np {
 
 				my $tags = artist_gettoptags(\%res);
 				$res{tags} = [map { $$_{name} } grep { $$_{count} } (ref $$tags{toptags}{tag} eq 'ARRAY' ? @{$$tags{toptags}{tag}} : $$tags{toptags}{tag})] if $tags;
-				$res{tags} = [grep { defined && $_ ne 'touhou' } @{$res{tags}}[0..4]];
+				$res{tags} = [grep { defined && ! $_ ~~ ['touhou', 'anime'] } @{$res{tags}}[0..4]];
 				pop @{$res{tags}} until @{$res{tags}} <= 4;
 
 				$res{len}   = ($$info{track}{duration} // 0) / 1000; # miliseconds
