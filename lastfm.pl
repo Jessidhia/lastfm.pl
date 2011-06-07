@@ -78,7 +78,7 @@ sub get_cache {
 	my ($subcache, $key) = @_;
 	die "Invalid cache $subcache" unless defined $subcache;
 	my $cache = $$api_cache{$subcache} //= {};
-	
+
 	return undef unless defined $key;
 	return _delete_if_expired $cache, $key;
 }
@@ -305,7 +305,7 @@ sub whats_playing {
 sub message_public {
 	my ($server, $text, $nick, $addr, $target) = @_;
 	my @cmd = split /\s+/, $text;
-	
+
 	my $send = sub {
 	};
 
