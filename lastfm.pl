@@ -337,7 +337,7 @@ sub message_public {
 				my $username = $cmd[1];
 				my $ircnick = $nick;
 				if ($cmd[2]) {
-					if ($nick eq $server->{nick}) {
+					if ($nick eq $owner) {
 						$username = $cmd[2];
 						$ircnick = $cmd[1];
 					} else {
@@ -357,7 +357,7 @@ sub message_public {
 			}
 		}
 		when ($prefix . 'deluser') {
-			my $ircnick = $nick eq $server->{nick} ? ($cmd[1] // $nick) : $nick;
+			my $ircnick = $nick eq $owner ? ($cmd[1] // $nick) : $nick;
 			my $username = $$nick_user_map{$ircnick};
 			if ($username) {
 				delete $$user_nick_map{$username}{$ircnick};
@@ -400,6 +400,9 @@ sub message_public {
 				send_msg($server, $target, "$user is only known as $user");
 			}
 		}
+        when ($prefix . 'source') {
+            send_msg($server, $target, "source: https://github.com/foxwolfblood/lastfm.pl");
+        }
 		when ($prefix . 'lastfm') {
 			my @help = (
 'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
@@ -431,7 +434,7 @@ sub message_public {
 
 sub message_own_public {
 	my ($server, $text, $target) = @_;
-	message_public( $server, $text, $server->{nick}, "localhost", $target );
+	message_public( $server, $text, $owner, "localhost", $target );
 }
 
 Irssi::signal_add_last("message public", \&message_public);
