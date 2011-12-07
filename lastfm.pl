@@ -12,7 +12,8 @@ use JSON;
 binmode STDOUT, ":utf8";
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
-
+our $owner = "foxwolfblood";
+our $prefix = "-";
 our $nick_user_map;
 our $user_nick_map = {}; # derived from $nick_user_map
 our $api_cache = {};
@@ -310,17 +311,17 @@ sub message_public {
 	};
 
 	given ($cmd[0]) {
-		when ('.np') { # now playing
+		when ($prefix . 'np') { # now playing
 			send_msg($server, $target, now_playing($nick, 1, @cmd));
 			write_cache;
 		}
-		when ('.wp') { # what's playing
-			if ($nick eq $server->{nick}) {
+		when ($prefix . 'wp') { # what's playing
+			if ($nick eq $owner) {
 				whats_playing($server, $target);
 				write_cache;
 			}
 		}
-		when ('.compare') { # tasteometer comparison
+		when ($prefix . 'compare') { # tasteometer comparison
 			unless (@cmd > 1) { send_msg($server, $target, ".compare needs someone to compare to") }
 			else {
 				my @users = (@cmd[1,2]);
@@ -329,7 +330,7 @@ sub message_public {
 				send_msg($server, $target, usercompare(@users));
 			}
 		}
-		when ('.setuser') {
+		when ($prefix . 'setuser') {
 			unless (@cmd > 1) { send_msg($server, $target, ".setuser needs a last.fm username") }
 			elsif($cmd[1] eq $nick) { send_msg($server, $target, "$nick: You already are yourself") }
 			else {
@@ -355,7 +356,7 @@ sub message_public {
 				}
 			}
 		}
-		when ('.deluser') {
+		when ($prefix . 'deluser') {
 			my $ircnick = $nick eq $server->{nick} ? ($cmd[1] // $nick) : $nick;
 			my $username = $$nick_user_map{$ircnick};
 			if ($username) {
@@ -372,7 +373,7 @@ sub message_public {
 				send_msg($server, $target, "Mapping for '$ircnick' doesn't exist");
 			}
 		}
-		when ('.whois') {
+		when ($prefix . 'whois') {
 			unless (@cmd > 1) {
 				send_msg($server, $target, ".whois needs a last.fm username");
 				return;
@@ -399,7 +400,7 @@ sub message_public {
 				send_msg($server, $target, "$user is only known as $user");
 			}
 		}
-		when ('.lastfm') {
+		when ($prefix . 'lastfm') {
 			my @help = (
 'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
 'Unlike IRC, all names are CASE SENSITIVE.',
