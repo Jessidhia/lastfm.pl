@@ -10,7 +10,8 @@ use Carp;
 use JSON;
 
 binmode STDOUT, ":utf8";
-
+Irssi::settings_add_str("lfmb", "lfmb_owner", "4n imposable nick");
+Irssi::settings_add_str("lfmb", "lfmb_prefix", "-");
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
 our $owner = "foxwolfblood";
 our $prefix = "-";
@@ -408,18 +409,19 @@ sub message_public {
 'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
 'Unlike IRC, all names are CASE SENSITIVE.',
 'Commands:',
-'.np [username]     - shows your currently playing song, or of another user if specified',
-'.compare u1 [u2]   - compares yourself with u1 (another user) if u2 isn\'t specified',
-'                     compares u1 with u2 if both are given.',
-'.setuser user      - associates the "user" last.fm username with your nickname.',
-'                     the two argument form is only available to the owner.',
-'.whois username    - given a last.fm username, return all nicknames that are associated to it.',
-'.deluser           - removes your last.fm association.',
-'                     the form with argument is only available to the owner.',
-'Owner-only commands:',
-'.wp                - shows everyone\'s currently playing song',
-'.setuser nick user - associates the nick with the specified last.fm user',
-'.deluser nick      - removes the nick\'s association with his last.fm account',
+"$prefix\x02np\x02 [username]     - shows your currently playing song, or of another user if specified",
+"$prefix\x02compare\x02 u1 [u2]   - compares yourself with u1 (another user) if u2 isn't specified",
+"                     compares u1 with u2 if both are given.",
+"$prefix\x02setuser\x02 user      - associates the \"user\" last.fm username with your nickname.",
+"                     the two argument form is only available to the owner.",
+"$prefix\x02whois\x02 username    - given a last.fm username, return all nicknames that are associated to it.",
+"$prefix\x02deluser\x02           - removes your last.fm association.",
+"                     the form with argument is only available to the owner.",
+"Owner-only commands:",
+"$prefix\x02wp\x02                - shows everyone's currently playing song",
+"$prefix\x02setuser\x02 nick user - associates the nick with the specified last.fm user",
+"$prefix\x02deluser\x02 nick      - removes the nick's association with his last.fm account",
+"$prefix\x02source\x02            - shows the source repo for the bot",
 );
 			for (@help) {
 				send_msg($server, $nick, $_);
@@ -436,6 +438,11 @@ sub message_own_public {
 	my ($server, $text, $target) = @_;
 	message_public( $server, $text, $server->{nick}, "localhost", $target );
 }
-
+sub rehash_conf {
+	$owner = Irssi::settings_get_str("lfmb_owner");
+	$prefix = Irssi::settings_get_str("lfmb_prefix");
+}
+&rehash_conf();
+Irssi::signal_add("setup changed",\&rehash_conf);
 Irssi::signal_add_last("message public", \&message_public);
 Irssi::signal_add_last("message own_public", \&message_own_public);
