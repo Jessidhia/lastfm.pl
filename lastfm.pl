@@ -250,17 +250,17 @@ sub _secs_to_mins {
 sub format_user_np {
 	my ($user, $data) = @_;
 
-	my $str = "'$user' is now playing: ";
-	$str .= "$$data{artist} - ";
-	$str .= "$$data{album} - " if $$data{album};
-	$str .= $$data{name};
+	my $str = "'\x02$user\x02' is now playing: ";
+	$str .= "\x037\x02$$data{artist}\x02\x03 - ";
+	$str .= "\x037\x02$$data{album}\x02\x03 - \x037\x02" if $$data{album};
+	$str .= $$data{name} . "\x02\x03";
 	if($$data{count}) {
-		$str .= " [". ($$data{loved} ? "<3 - " : "") ."playcount $$data{count}x]" ;
+		$str .= " [". ($$data{loved} ? "\x0304<3\x03 - " : "") ."playcount $$data{count}x]" ;
 	}
-	$str .= " (". join( ', ', @{$$data{tags}} ) .")" if $$data{tags} && @{$$data{tags}};
-	$str .= " [";
+	$str .= " (\x0310\x02". join( "\x02\x03, \x0310\x02", @{$$data{tags}} ) ."\x02\x03)" if $$data{tags} && @{$$data{tags}};
+	$str .= " [\x037\x02";
 	$str .= _secs_to_mins($$data{pos}) . "/" if $$data{pos};
-	$str .= _secs_to_mins($$data{len}) . "]";
+	$str .= _secs_to_mins($$data{len}) . "\x02\x03]";
 	return $str;
 }
 
@@ -434,7 +434,7 @@ sub message_public {
 
 sub message_own_public {
 	my ($server, $text, $target) = @_;
-	message_public( $server, $text, $server->{nick}{, "localhost", $target );
+	message_public( $server, $text, $server->{nick}, "localhost", $target );
 }
 
 Irssi::signal_add_last("message public", \&message_public);
