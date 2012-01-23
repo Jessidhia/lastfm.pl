@@ -434,7 +434,7 @@ sub message_public {
 
 sub message_own_public {
 	my ($server, $text, $target) = @_;
-	message_public( $server, $text, $owner, "localhost", $target );
+	message_public( $server, $text, $server->{nick}{, "localhost", $target );
 }
 
 Irssi::signal_add_last("message public", \&message_public);
