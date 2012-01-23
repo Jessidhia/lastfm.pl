@@ -253,8 +253,8 @@ sub format_user_np {
 
 	my $str = "'\x02$user\x02' is now playing: ";
 	$str .= "\x037\x02$$data{artist}\x02\x03 - ";
-	$str .= "\x037\x02$$data{album}\x02\x03 - \x037\x02" if $$data{album};
-	$str .= $$data{name} . "\x02\x03";
+	$str .= "\x037\x02$$data{album}\x02\x03 - " if $$data{album};
+	$str .= "\x037\x02" . $$data{name} . "\x02\x03";
 	if($$data{count}) {
 		$str .= " [". ($$data{loved} ? "\x0304<3\x03 - " : "") ."playcount $$data{count}x]" ;
 	}
