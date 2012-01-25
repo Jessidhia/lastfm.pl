@@ -446,3 +446,4 @@ sub rehash_conf {
 Irssi::signal_add("setup changed",\&rehash_conf);
 Irssi::signal_add_last("message public", \&message_public);
 Irssi::signal_add_last("message own_public", \&message_own_public);
+Irssi::command_bind('lfmb_reload', \&rehash_conf);
