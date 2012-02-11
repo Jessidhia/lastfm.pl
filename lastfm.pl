@@ -18,7 +18,7 @@ our $prefix = "-";
 our $nick_user_map;
 our $user_nick_map = {}; # derived from $nick_user_map
 our $api_cache = {};
-if( open my $cachefile, '<', 'lastfm_cache.json' ) {
+if( open my $cachefile, '<', $ENV{'HOME'}."/.irssi/lastfm_cache.json" ) {
 	$api_cache = decode_json(scalar <$cachefile>);
 	$nick_user_map = get_cache('mappings', 'nick_user');
 	build_nick_map();
@@ -122,7 +122,7 @@ sub set_cache {
 sub write_cache {
 	clean_cache;
 	set_cache('mappings', 'nick_user', $nick_user_map, -1);
-	open my $cachefile, '>', 'lastfm_cache.json';
+	open my $cachefile, '>', $ENV{'HOME'}."/.irssi/lastfm_cache.json";
 	syswrite $cachefile, encode_json($api_cache);
 	close $cachefile;
 }
