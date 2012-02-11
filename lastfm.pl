@@ -405,7 +405,8 @@ sub message_public {
             send_msg($server, $target, "source: https://github.com/foxwolfblood/lastfm.pl");
         }
 		when ($prefix . 'lastfm') {
-			my @help = (
+s	end_msg($server, $target, "$nick: help will be PMed to you, be patient as other users may have also used this function.");			
+	my @help = (
 'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
 'Unlike IRC, all names are CASE SENSITIVE.',
 'Commands:',
