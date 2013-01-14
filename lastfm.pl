@@ -402,7 +402,7 @@ sub message_public {
 			}
 		}
         when ($prefix . 'source') {
-            send_msg($server, $target, "source: https://github.com/foxwolfblood/lastfm.pl");
+            send_msg($server, $target, "source: https://github.com/foxiepaws/lastfm.pl");
         }
 		when ($prefix . 'lastfm') {
 	send_msg($server, $target, "$nick: help will be PMed to you, be patient as other users may have also used this function.");			
