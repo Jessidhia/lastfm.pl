@@ -20,7 +20,7 @@ our %IRSSI = (
 );
 
 
-Irssi::settings_add_str("lfmb", "lfmb_owner", "01";
+Irssi::settings_add_str("lfmb", "lfmb_owner", "01");
 Irssi::settings_add_str("lfmb", "lfmb_prefix", "-");
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
