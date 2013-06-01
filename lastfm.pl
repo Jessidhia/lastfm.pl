@@ -11,7 +11,7 @@ use JSON;
 
 binmode STDOUT, ":utf8";
 # I'm gonna call 1.0 here, just because kovensky never had $VERSION.
-our $VERSION = '1.0.0';
+our $VERSION = '1.0.1';
 our %IRSSI = (
 	authors		=> 'foxiepaws, Kovensky',
 	contact		=> 'fox@foxiepa.ws',
@@ -421,6 +421,9 @@ sub message_public {
         when ($prefix . 'source') {
             send_msg($server, $target, "source: https://github.com/foxiepaws/lastfm.pl");
         }
+		when ($prefix . 'version') {
+			send_msg($server, $target, "version: $VERSION - repo: https://github.com/foxiepaws/lastfm.pl");
+		}
 		when ($prefix . 'lastfm') {
 	send_msg($server, $target, "$nick: help will be PMed to you, be patient as other users may have also used this function.");			
 	my @help = (
