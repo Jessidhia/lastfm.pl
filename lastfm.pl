@@ -10,10 +10,21 @@ use Carp;
 use JSON;
 
 binmode STDOUT, ":utf8";
-Irssi::settings_add_str("lfmb", "lfmb_owner", "4n imposable nick");
+# I'm gonna call 1.0 here, just because kovensky never had $VERSION.
+our $VERSION = '1.0.0';
+our %IRSSI = (
+	authors		=> 'foxiepaws, Kovensky',
+	contact		=> 'fox@foxiepa.ws',
+	name		=> 'lastfm-bot',
+	description	=> 'A lastfm bot',
+);
+
+
+Irssi::settings_add_str("lfmb", "lfmb_owner", $server->{nick});
 Irssi::settings_add_str("lfmb", "lfmb_prefix", "-");
+
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
-our $owner = "foxwolfblood";
+our $owner = $server->{nick};
 our $prefix = "-";
 our $nick_user_map;
 our $user_nick_map = {}; # derived from $nick_user_map
@@ -449,7 +460,9 @@ sub rehash_conf {
 	$owner = Irssi::settings_get_str("lfmb_owner");
 	$prefix = Irssi::settings_get_str("lfmb_prefix");
 }
+
 &rehash_conf();
+
 Irssi::signal_add("setup changed",\&rehash_conf);
 Irssi::signal_add_last("message public", \&message_public);
 Irssi::signal_add_last("message own_public", \&message_own_public);
