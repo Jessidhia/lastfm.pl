@@ -310,6 +310,12 @@ sub message_public {
 
 	my $send = sub {
 	};
+	my $onick = $server->{nick};
+    if ($text =~ /$onick:np(:\w+)?/g) {
+        my $additional = $1;
+        $additional =~ s/://;
+        send_msg($server, $target, now_playing($nick, 1,(0, $additional)));
+    }
 
 	given ($cmd[0]) {
 		when ($prefix . 'np') { # now playing
