@@ -20,11 +20,11 @@ our %IRSSI = (
 );
 
 
-Irssi::settings_add_str("lfmb", "lfmb_owner", $server->{nick});
+Irssi::settings_add_str("lfmb", "lfmb_owner", "01";
 Irssi::settings_add_str("lfmb", "lfmb_prefix", "-");
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
-our $owner = $server->{nick};
+our $owner = "01";
 our $prefix = "-";
 our $nick_user_map;
 our $user_nick_map = {}; # derived from $nick_user_map
