@@ -249,7 +249,7 @@ sub get_user_np {
 		}
 
 	} else {
-		%res = (error => "User '$user' not found or error accessing his/her recent tracks.");
+		%res = (error => "User '$user' not found or error accessing their recent tracks.");
 	}
 	return \%res;
 }
