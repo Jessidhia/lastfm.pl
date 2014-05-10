@@ -11,7 +11,16 @@ use JSON;
 
 binmode STDOUT, ":utf8";
 # I'm gonna call 1.0 here, just because kovensky never had $VERSION.
-our $VERSION = '1.0.1';
+our $VERSION = '1.0.2';
+
+# hack: get git version 
+$path = __FILE__;
+$path =~ s/lastfm.pl$//;
+$gitver = `git -C $path show --pretty=oneline`;
+$gitver =~ s/(.*?)\s.*/$1/;
+$VERSION = "git: $gitver" unless ($gitver eq "");
+##
+
 our %IRSSI = (
 	authors		=> 'foxiepaws, Kovensky',
 	contact		=> 'fox@foxiepa.ws',
