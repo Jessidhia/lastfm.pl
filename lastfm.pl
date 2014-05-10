@@ -215,8 +215,8 @@ sub usercompare {
 
 sub getPlayer ($) {
 	my $user = shift;
-	$uri = "http://last.fm/user/$user";
-	my $response = $ua->get("$uri")->response_text;
+	my $uri = "http://last.fm/user/$user";
+	my $response = $ua->get("$uri")->content;
 	$response =~ /Scrobbling from <span class="source"><a href=".*?">(.*?)<\/a><\/span>/;
 	print $response;
 }
@@ -284,7 +284,7 @@ sub format_user_np {
 	my ($user, $data) = @_;
 
 	my $str = "'\x02$user\x02' is now playing";
-	if (defined $$data{player}) { $str .= " in $${player}: "; } 
+	if (defined $$data{player}) { $str .= " in $$data{player}: "; } 
 	else { $str .= ": " }
 	$str .= "\x037\x02$$data{artist}\x02\x03 - ";
 	$str .= "\x037\x02$$data{album}\x02\x03 - " if $$data{album};
