@@ -14,9 +14,9 @@ binmode STDOUT, ":utf8";
 our $VERSION = '1.0.2';
 
 # hack: get git version 
-$path = __FILE__;
+my $path = __FILE__;
 $path =~ s/lastfm.pl$//;
-$gitver = `git -C $path show --pretty=oneline`;
+my $gitver = `git -C $path show --pretty=oneline`;
 $gitver =~ s/(.*?)\s.*/$1/;
 $VERSION = "git: $gitver" unless ($gitver eq "");
 ##
