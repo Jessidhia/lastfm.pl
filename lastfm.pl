@@ -16,9 +16,9 @@ our $VERSION = '1.0.2';
 # hack: get git version 
 my $path = __FILE__;
 $path =~ s/lastfm.pl$//;
-my $gitver = `git -C $path show --pretty=oneline`;
+my $gitver = `git -C $path show -s --pretty=oneline`;
 $gitver =~ s/(.*?)\s.*/$1/;
-$VERSION = "git: $gitver" unless ($gitver eq "");
+$VERSION = "git:$gitver" unless ($gitver eq "");
 ##
 
 our %IRSSI = (
@@ -217,8 +217,8 @@ sub getPlayer ($) {
 	my $user = shift;
 	my $uri = "http://last.fm/user/$user";
 	my $response = $ua->get("$uri")->content;
-	$response =~ /Scrobbling from <span class="source"><a href=".*?">(.*?)<\/a><\/span>/;
-	print $response;
+	$response =~ /Scrobbling from (?:<img capture="clienticon".*?\/>)?<span class="source"><a href=".*?">(.*?)<\/a><\/span>/;
+	return $1;
 }
 	
 	
@@ -256,13 +256,13 @@ sub get_user_np {
 				$prevlen  = $$info{track}{duration};
 				$prevtime = $$_{date}{uts} - $prevlen;
 			}
-			$$_{player} = getPlayer($user);
 		}
 		unless ($res{name}) {
 			%res = (warn => "'$user' is not listening to anything right now. ". (@tracks < 1 || ref $tracks[0] ne 'HASH' ? "" :
 			"The last played track is \x037\x02@{[_text $tracks[0]->{artist}]}\x03\x02 - \x037\x02$tracks[0]->{name}\x03\x02, back in @{[_text $tracks[0]->{date}]} UTC."));
 		}
 
+		$res{player} = getPlayer($user);
 		my $now = time;
 		if ($res{len} && $prevtime && ($now - $prevtime) <= $res{len}) {
 			$res{pos} = $now - $prevtime;
