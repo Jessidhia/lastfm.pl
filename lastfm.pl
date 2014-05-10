@@ -213,6 +213,17 @@ sub usercompare {
 	return $str;
 }
 
+sub getPlayer ($) {
+	my $user = shift;
+	$uri = "http://last.fm/user/$user";
+	my $response = $ua->get("$uri")->response_text;
+	$response =~ /Scrobbling from <span class="source"><a href=".*?">(.*?)<\/a><\/span>/;
+	print $response;
+}
+	
+	
+	
+
 sub get_user_np {
 	my $user = shift;
 
@@ -245,6 +256,7 @@ sub get_user_np {
 				$prevlen  = $$info{track}{duration};
 				$prevtime = $$_{date}{uts} - $prevlen;
 			}
+			$$_{player} = getPlayer($user);
 		}
 		unless ($res{name}) {
 			%res = (warn => "'$user' is not listening to anything right now. ". (@tracks < 1 || ref $tracks[0] ne 'HASH' ? "" :
@@ -271,7 +283,9 @@ sub _secs_to_mins {
 sub format_user_np {
 	my ($user, $data) = @_;
 
-	my $str = "'\x02$user\x02' is now playing: ";
+	my $str = "'\x02$user\x02' is now playing";
+	if (defined $$data{player}) { $str .= " in $${player}: "; } 
+	else { $str .= ": " }
 	$str .= "\x037\x02$$data{artist}\x02\x03 - ";
 	$str .= "\x037\x02$$data{album}\x02\x03 - " if $$data{album};
 	$str .= "\x037\x02" . $$data{name} . "\x02\x03";
