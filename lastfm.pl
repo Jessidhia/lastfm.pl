@@ -10,13 +10,35 @@ use Carp;
 use JSON;
 
 binmode STDOUT, ":utf8";
+# I'm gonna call 1.0 here, just because kovensky never had $VERSION.
+our $VERSION = '1.0.2';
+
+# hack: get git version 
+my $path = __FILE__;
+$path =~ s/lastfm.pl$//;
+my $gitver = `git -C $path show -s --pretty=oneline`;
+$gitver =~ s/(.*?)\s.*/$1/;
+$VERSION = "git:$gitver" unless ($gitver eq "");
+##
+
+our %IRSSI = (
+	authors		=> 'foxiepaws, Kovensky',
+	contact		=> 'fox@foxiepa.ws',
+	name		=> 'lastfm-bot',
+	description	=> 'A lastfm bot',
+);
+
+
+Irssi::settings_add_str("lfmb", "lfmb_owner", "01");
+Irssi::settings_add_str("lfmb", "lfmb_prefix", "-");
 
 our $api_key = '4c563adf68bc357a4570d3e7986f6481';
-
+our $owner = "01";
+our $prefix = "-";
 our $nick_user_map;
 our $user_nick_map = {}; # derived from $nick_user_map
 our $api_cache = {};
-if( open my $cachefile, '<', 'lastfm_cache.json' ) {
+if( open my $cachefile, '<', $ENV{'HOME'}."/.irssi/lastfm_cache.json" ) {
 	$api_cache = decode_json(scalar <$cachefile>);
 	$nick_user_map = get_cache('mappings', 'nick_user');
 	build_nick_map();
@@ -120,7 +142,7 @@ sub set_cache {
 sub write_cache {
 	clean_cache;
 	set_cache('mappings', 'nick_user', $nick_user_map, -1);
-	open my $cachefile, '>', 'lastfm_cache.json';
+	open my $cachefile, '>', $ENV{'HOME'}."/.irssi/lastfm_cache.json";
 	syswrite $cachefile, encode_json($api_cache);
 	close $cachefile;
 }
@@ -191,6 +213,17 @@ sub usercompare {
 	return $str;
 }
 
+sub getPlayer ($) {
+	my $user = shift;
+	my $uri = "http://last.fm/user/$user";
+	my $response = $ua->get("$uri")->content;
+	$response =~ /Scrobbling from (?:<img capture="clienticon".*?\/>)?<span class="source"><a href=".*?">(.*?)<\/a><\/span>/;
+	return $1;
+}
+	
+	
+	
+
 sub get_user_np {
 	my $user = shift;
 
@@ -226,9 +259,10 @@ sub get_user_np {
 		}
 		unless ($res{name}) {
 			%res = (warn => "'$user' is not listening to anything right now. ". (@tracks < 1 || ref $tracks[0] ne 'HASH' ? "" :
-			"The last played track is @{[_text $tracks[0]->{artist}]} - $tracks[0]->{name}, back in @{[_text $tracks[0]->{date}]} UTC."));
+			"The last played track is \x037\x02@{[_text $tracks[0]->{artist}]}\x03\x02 - \x037\x02$tracks[0]->{name}\x03\x02, back in @{[_text $tracks[0]->{date}]} UTC."));
 		}
 
+		$res{player} = getPlayer($user);
 		my $now = time;
 		if ($res{len} && $prevtime && ($now - $prevtime) <= $res{len}) {
 			$res{pos} = $now - $prevtime;
@@ -236,7 +270,7 @@ sub get_user_np {
 		}
 
 	} else {
-		%res = (error => "User '$user' not found or error accessing his/her recent tracks.");
+		%res = (error => "User '$user' not found or error accessing their recent tracks.");
 	}
 	return \%res;
 }
@@ -249,17 +283,19 @@ sub _secs_to_mins {
 sub format_user_np {
 	my ($user, $data) = @_;
 
-	my $str = "'$user' is now playing: ";
-	$str .= "$$data{artist} - ";
-	$str .= "$$data{album} - " if $$data{album};
-	$str .= $$data{name};
+	my $str = "'\x02$user\x02' is now playing";
+	if (defined $$data{player}) { $str .= " in $$data{player}: "; } 
+	else { $str .= ": " }
+	$str .= "\x037\x02$$data{artist}\x02\x03 - ";
+	$str .= "\x037\x02$$data{album}\x02\x03 - " if $$data{album};
+	$str .= "\x037\x02" . $$data{name} . "\x02\x03";
 	if($$data{count}) {
-		$str .= " [". ($$data{loved} ? "<3 - " : "") ."playcount $$data{count}x]" ;
+		$str .= " [". ($$data{loved} ? "\x0304<3\x03 - " : "") ."playcount $$data{count}x]" ;
 	}
-	$str .= " (". join( ', ', @{$$data{tags}} ) .")" if $$data{tags} && @{$$data{tags}};
-	$str .= " [";
+	$str .= " (\x0310\x02". join( "\x02\x03, \x0310\x02", @{$$data{tags}} ) ."\x02\x03)" if $$data{tags} && @{$$data{tags}};
+	$str .= " [\x037\x02";
 	$str .= _secs_to_mins($$data{pos}) . "/" if $$data{pos};
-	$str .= _secs_to_mins($$data{len}) . "]";
+	$str .= _secs_to_mins($$data{len}) . "\x02\x03]";
 	return $str;
 }
 
@@ -308,19 +344,25 @@ sub message_public {
 
 	my $send = sub {
 	};
+	my $onick = $server->{nick};
+    if ($text =~ /$onick:np(:\w+)?/g) {
+        my $additional = $1;
+        $additional =~ s/://;
+        send_msg($server, $target, now_playing($nick, 1,(0, $additional)));
+    }
 
 	given ($cmd[0]) {
-		when ('.np') { # now playing
+		when ($prefix . 'np') { # now playing
 			send_msg($server, $target, now_playing($nick, 1, @cmd));
 			write_cache;
 		}
-		when ('.wp') { # what's playing
-			if ($nick eq $server->{nick}) {
+		when ($prefix . 'wp') { # what's playing
+			if ($nick eq $owner) {
 				whats_playing($server, $target);
 				write_cache;
 			}
 		}
-		when ('.compare') { # tasteometer comparison
+		when ($prefix . 'compare') { # tasteometer comparison
 			unless (@cmd > 1) { send_msg($server, $target, ".compare needs someone to compare to") }
 			else {
 				my @users = (@cmd[1,2]);
@@ -329,14 +371,14 @@ sub message_public {
 				send_msg($server, $target, usercompare(@users));
 			}
 		}
-		when ('.setuser') {
+		when ($prefix . 'setuser') {
 			unless (@cmd > 1) { send_msg($server, $target, ".setuser needs a last.fm username") }
 			elsif($cmd[1] eq $nick) { send_msg($server, $target, "$nick: You already are yourself") }
 			else {
 				my $username = $cmd[1];
 				my $ircnick = $nick;
 				if ($cmd[2]) {
-					if ($nick eq $server->{nick}) {
+					if ($nick eq $owner) {
 						$username = $cmd[2];
 						$ircnick = $cmd[1];
 					} else {
@@ -355,8 +397,8 @@ sub message_public {
 				}
 			}
 		}
-		when ('.deluser') {
-			my $ircnick = $nick eq $server->{nick} ? ($cmd[1] // $nick) : $nick;
+		when ($prefix . 'deluser') {
+			my $ircnick = $nick eq $owner ? ($cmd[1] // $nick) : $nick;
 			my $username = $$nick_user_map{$ircnick};
 			if ($username) {
 				delete $$user_nick_map{$username}{$ircnick};
@@ -372,7 +414,7 @@ sub message_public {
 				send_msg($server, $target, "Mapping for '$ircnick' doesn't exist");
 			}
 		}
-		when ('.whois') {
+		when ($prefix . 'whois') {
 			unless (@cmd > 1) {
 				send_msg($server, $target, ".whois needs a last.fm username");
 				return;
@@ -399,23 +441,31 @@ sub message_public {
 				send_msg($server, $target, "$user is only known as $user");
 			}
 		}
-		when ('.lastfm') {
-			my @help = (
+        when ($prefix . 'source') {
+            send_msg($server, $target, "source: https://github.com/foxiepaws/lastfm.pl");
+        }
+		when ($prefix . 'version') {
+			send_msg($server, $target, "version: $VERSION - repo: https://github.com/foxiepaws/lastfm.pl");
+		}
+		when ($prefix . 'lastfm') {
+	send_msg($server, $target, "$nick: help will be PMed to you, be patient as other users may have also used this function.");			
+	my @help = (
 'Commands that access last.fm use the IRC nickname unless associated through .setuser.',
 'Unlike IRC, all names are CASE SENSITIVE.',
 'Commands:',
-'.np [username]     - shows your currently playing song, or of another user if specified',
-'.compare u1 [u2]   - compares yourself with u1 (another user) if u2 isn\'t specified',
-'                     compares u1 with u2 if both are given.',
-'.setuser user      - associates the "user" last.fm username with your nickname.',
-'                     the two argument form is only available to the owner.',
-'.whois username    - given a last.fm username, return all nicknames that are associated to it.',
-'.deluser           - removes your last.fm association.',
-'                     the form with argument is only available to the owner.',
-'Owner-only commands:',
-'.wp                - shows everyone\'s currently playing song',
-'.setuser nick user - associates the nick with the specified last.fm user',
-'.deluser nick      - removes the nick\'s association with his last.fm account',
+"$prefix\x02np\x02 [username]     - shows your currently playing song, or of another user if specified",
+"$prefix\x02compare\x02 u1 [u2]   - compares yourself with u1 (another user) if u2 isn't specified",
+"                     compares u1 with u2 if both are given.",
+"$prefix\x02setuser\x02 user      - associates the \"user\" last.fm username with your nickname.",
+"                     the two argument form is only available to the owner.",
+"$prefix\x02whois\x02 username    - given a last.fm username, return all nicknames that are associated to it.",
+"$prefix\x02deluser\x02           - removes your last.fm association.",
+"                     the form with argument is only available to the owner.",
+"Owner-only commands:",
+"$prefix\x02wp\x02                - shows everyone's currently playing song",
+"$prefix\x02setuser\x02 nick user - associates the nick with the specified last.fm user",
+"$prefix\x02deluser\x02 nick      - removes the nick's association with his last.fm account",
+"$prefix\x02source\x02            - shows the source repo for the bot",
 );
 			for (@help) {
 				send_msg($server, $nick, $_);
@@ -432,6 +482,14 @@ sub message_own_public {
 	my ($server, $text, $target) = @_;
 	message_public( $server, $text, $server->{nick}, "localhost", $target );
 }
+sub rehash_conf {
+	$owner = Irssi::settings_get_str("lfmb_owner");
+	$prefix = Irssi::settings_get_str("lfmb_prefix");
+}
 
+&rehash_conf();
+
+Irssi::signal_add("setup changed",\&rehash_conf);
 Irssi::signal_add_last("message public", \&message_public);
 Irssi::signal_add_last("message own_public", \&message_own_public);
+Irssi::command_bind('lfmb_reload', \&rehash_conf);
